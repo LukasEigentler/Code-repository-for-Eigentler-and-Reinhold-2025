@@ -1,4 +1,4 @@
-function  [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,interq_trait_op,phaselag_prey_pred,phaselag_pred_trait] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options)
+function  [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options)
 % This script is a function that simulates the model once and calculates a
 % number of output quantities of interest.
 rerun = 1;
@@ -19,13 +19,14 @@ while rerun == 1
         [~,tempind] = min(abs(cumsum(v(tt,1:M))/sum(v(tt,1:M))-0.5));
         medianc(tt) = c(tempind);
         meanc(tt) = sum(v(tt,1:M).*c)/sum(v(tt,1:M));
+        varc(tt) = sum(v(tt,1:M).*(c-meanc(tt)).^2)/sum(v(tt,1:M));
     end
     
     
     %% isolate solution over one period
     [~,tind] = min(abs(t-(tmax-100))); % find index 100 time units before end
-    locmaxind = find(islocalmax(totalprey)); % find locmax of total prey
-    if length(locmaxind)>3 && (max(totalprey(tind:end)) - min(totalprey(tind:end)))/mean(totalprey(tind:end)) > 1e-3 % check if there are oscillations and store info
+    locminind = find(islocalmin(v(:,end))); % find locmax of total prey
+    if length(locminind)>3 && (max(totalprey(tind:end)) - min(totalprey(tind:end)))/mean(totalprey(tind:end)) > 1e-3 % check if there are oscillations and store info
         cycles = 1;
         
 
@@ -34,7 +35,7 @@ while rerun == 1
     end
     
     if cycles == 1
-        startind = locmaxind(end-2); endind = locmaxind(end-1); % select second to last period
+        startind = locminind(end-2); endind = locminind(end-1); % select second to last period
     else 
         endind = length(totalprey); startind = endind-100; % for constant sol select just a few indices so that code below works
     end
@@ -45,7 +46,7 @@ while rerun == 1
     %% isolate solution over the previous period
     
     if cycles == 1
-        startind1 = locmaxind(end-3); endind1 = locmaxind(end-2); % select second to last period
+        startind1 = locminind(end-3); endind1 = locminind(end-2); % select second to last period
     else 
         endind1 = length(totalprey); startind1 = endind1-100; % for constant sol select just a few indices so that code below works
     end
@@ -70,6 +71,7 @@ end
     t_op = t(startind:endind) - t(startind); % time vector of that period
     medianc_op = medianc(startind:endind); % median trait across one period
     meanc_op = meanc(startind:endind); % mean trait across one period
+    varc_op = varc(startind:endind); % trait variance across one period
     if cycles == 1
         L = t(endind) - t(startind); % wavelength
     else
@@ -77,35 +79,37 @@ end
     end
     
     %% quantify solution across one period - trait interquartile range
-    np = length(c);
-    interq_trait_op=zeros(1,length(t_op)); traitdist = zeros(np,length(t_op));
-    for i=1:length(t_op) % loop through all times
-        traitdist(1:np,i) = v_op(i,1:np)/sum(v_op(i,1:np)); % frequency of trait value
-        csum = cumsum(traitdist(:,i)); %cdf of trait dist
-        cspace = linspace(0,1,1000); % larger c vector
-        csum = interp1(c',csum,cspace); % interpolate onto larger c vector
-        p25ind = find(csum<0.25); % find 25 percentile
-        if ~isempty(p25ind) 
-            p25ind = p25ind(end)+1; cp25 = cspace(p25ind);
-        else
-            cp25 = cspace(1);
-        end
-        p75ind = find(csum<0.75); % find 75 percentile
-        if ~isempty(p75ind)
-            p75ind = p75ind(end); cp75 = cspace(p75ind);
-        else
-            cp75 = cspace(end);
-        end
-        interq_trait_op(i) = cp75-cp25; % interquartile range of traits
-    end
+%     np = length(c);
+%     interq_trait_op=zeros(1,length(t_op)); traitdist = zeros(np,length(t_op));
+%     for i=1:length(t_op) % loop through all times
+%         traitdist(1:np,i) = v_op(i,1:np)/sum(v_op(i,1:np)); % frequency of trait value
+%         csum = cumsum(traitdist(:,i)); %cdf of trait dist
+%         cspace = linspace(0,1,1000); % larger c vector
+%         csum = interp1(c',csum,cspace); % interpolate onto larger c vector
+%         p25ind = find(csum<0.25); % find 25 percentile
+%         if ~isempty(p25ind) 
+%             p25ind = p25ind(end)+1; cp25 = cspace(p25ind);
+%         else
+%             cp25 = cspace(1);
+%         end
+%         p75ind = find(csum<0.75); % find 75 percentile
+%         if ~isempty(p75ind)
+%             p75ind = p75ind(end); cp75 = cspace(p75ind);
+%         else
+%             cp75 = cspace(end);
+%         end
+%         interq_trait_op(i) = sqrt(varc_op(i)); % interquartile range of traits
+%     end
     
-       
+
     
     %% quantify solution across one period - phaseshifts
     if cycles == 1 
-        [~,maxpreyind] = max(totalprey_op); [~,maxpredind] = max(totalpred_op); [~,maxtraitind] = max(meanc_op); % find lcoation of max of all densities of interest
+        [~,maxpreyind] = max(totalprey_op); [~,maxpredind] = max(totalpred_op); 
+        [~,maxtraitind] = max(meanc_op); [~,maxvarind] = max(varc_op); % find lcoation of max of all densities of interest
         phaselag_prey_pred = (t_op(maxpredind) - t_op(maxpreyind))/L; % phaselag between prey and predator rel to period
         phaselag_pred_trait = (t_op(maxtraitind) - t_op(maxpredind))/L; % pahselag between predator and mean trait rel to period
+        phaselag_mean_var = (t_op(maxvarind) - t_op(maxtraitind))/L; % pahselag between mean trait and iqr trait rel to period
         % correct negative phaselags to number between 0 and 1
         if phaselag_prey_pred < 0 
             phaselag_prey_pred = 1+phaselag_prey_pred;
@@ -113,9 +117,13 @@ end
         if phaselag_pred_trait < 0 
             phaselag_pred_trait = 1+phaselag_pred_trait;
         end
+        if phaselag_mean_var < 0 
+            phaselag_mean_var = 1+phaselag_mean_var;
+        end
     else
         phaselag_pred_trait = NaN; % no phaseshifts if no cycles
         phaselag_prey_pred = NaN;
+        phaselag_mean_var = NaN;
     end
 
 

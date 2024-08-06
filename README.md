@@ -1,5 +1,5 @@
-# Eigentler-and-Reinhold-2023-Code-repository 
-This repository contains code associated with the paper Eigentler and Reinhold (2023) DOI: TBC.
+# Code-repository 
+This repository contains code associated with the paper Names redacted (2023) DOI: TBC.
 All code is provided through GNU General Public License v3.0. Please see the license file for more information
 
 "hopf_locus_numsim.m" calculates the location of the transition between stable and oscillatory solutions in a two-dimensional parameter plane.

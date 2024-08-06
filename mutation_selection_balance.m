@@ -5,16 +5,22 @@
 clear; close all;
 
 %% Parameters
-d=0.001; % mutation rate
-alpha1 = 0.5; % cost of prey defence
-alpha2 = 0.5; % prey defence efficiency
+d=0.001; dtemp = d;% mutation rate
+alpha1 = 0.75; alpha1temp = alpha1; % cost of prey defence
+alpha2 = 0.5; alpha2temp = alpha2; % prey defence efficiency
 m1 = 0.2; %prey mortality
-m2 = 0.5; %pred mortality (LV only)
+m2 = 0.2; m2temp = m2; %pred mortality (LV only)
 ph = 0.5; %predation half saturation constant (extension only)
 gamma = 4; % prey to predator conversion
-switchparachoice = "d";
+switchparachoice = "m2";
 % switchpara = [logspace(-5,-4,10),logspace(-4,-3,10),logspace(-3,-2,10),logspace(-2,-1,10)];
-switchpara = linspace(0,1,10);
+if switchparachoice == "m2"
+    switchpara = linspace(0,3,30);
+elseif switchparachoice == "d"
+    switchpara = logspace(-6,-2,40);
+else
+    switchpara = linspace(0,1,10);
+end
 %% Mesh
 cmax = 1; %Space domain size of interest
 tmax = 1000; %Integration range for solver
@@ -42,50 +48,54 @@ for ss = 1:length(switchpara)
         case "d"
             d = switchpara(ss);
     end
-    [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,interq_trait_op,phaselag_prey_pred,phaselag_pred_trait] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options);
+    [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_trait_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options);
 
 
 
     %% calc IQR
-    np = length(c);
-        interq_trait=zeros(1,length(t)); traitdist = zeros(np,length(t));
-        for i=1:length(t) % loop through all times
-            traitdist(1:np,i) = v(i,1:np)/sum(v(i,1:np)); % frequency of trait value
-            csum = cumsum(traitdist(:,i)); %cdf of trait dist
-            cspace = linspace(0,1,1000); % larger c vector
-            csum = interp1(c',csum,cspace); % interpolate onto larger c vector
-            p25ind = find(csum<0.25); % find 25 percentile
-            if ~isempty(p25ind) 
-                p25ind = p25ind(end)+1; cp25 = cspace(p25ind);
-            else
-                cp25 = cspace(1);
-            end
-            p75ind = find(csum<0.75); % find 75 percentile
-            if ~isempty(p75ind)
-                p75ind = p75ind(end); cp75 = cspace(p75ind);
-            else
-                cp75 = cspace(end);
-            end
-            interq_trait(i) = cp75-cp25; % interquartile range of traits
-        end
-        mut_sel_iqr(ss) = interq_trait(end);
+%     np = length(c);
+%         interq_trait=zeros(1,length(t)); traitdist = zeros(np,length(t));
+%         for i=1:length(t) % loop through all times
+%             traitdist(1:np,i) = v(i,1:np)/sum(v(i,1:np)); % frequency of trait value
+%             csum = cumsum(traitdist(:,i)); %cdf of trait dist
+%             cspace = linspace(0,1,1000); % larger c vector
+%             csum = interp1(c',csum,cspace); % interpolate onto larger c vector
+%             p25ind = find(csum<0.25); % find 25 percentile
+%             if ~isempty(p25ind) 
+%                 p25ind = p25ind(end)+1; cp25 = cspace(p25ind);
+%             else
+%                 cp25 = cspace(1);
+%             end
+%             p75ind = find(csum<0.75); % find 75 percentile
+%             if ~isempty(p75ind)
+%                 p75ind = p75ind(end); cp75 = cspace(p75ind);
+%             else
+%                 cp75 = cspace(end);
+%             end
+%             interq_trait(i) = cp75-cp25; % interquartile range of traits
+%         end
+        mut_sel_varc(ss) = varc(end);
 end
-
 switch switchparachoice
     case "m2"
-        filename = "num_sim_data/mut_sel_balance_data_m2";
+        m2 = m2temp;
     case "alpha1"
-        filename = "num_sim_data/mut_sel_balance_data_alpha1";
+        alpha1 = alpha1temp;
     case "alpha2"
-        filename = "num_sim_data/mut_sel_balance_data_alpha2";
+        alpha2 = alpha2temp;
     case "d"
-        filename = "num_sim_data/mut_sel_balance_data_d";
+        d = dtemp;
 end
-save(filename,"switchpara","mut_sel_iqr")
+
+
+filename = "num_sim_data/mut_sel_balance_data_"+switchparachoice+"_change"+strrep("_d"+num2str(d)+"_ph"+num2str(ph)+"_gamma"+num2str(gamma)+...
+        "_alpha1"+num2str(alpha1)+"_alpha2"+num2str(alpha2)+"_m1"+num2str(m1)+"_m2"+num2str(m2),'.','dot');
+
+save(filename,"switchpara","mut_sel_varc")
 
 if switchparachoice == "d"
 f = figure;
-semilogx(switchpara,mut_sel_iqr, '--o')
+semilogx(switchpara,mut_sel_varc, '--o')
 hold on
 grid on
 xlabel("Trait difusion, $d$", "Interpreter", "latex")

@@ -5,13 +5,13 @@
 clear; 
 close all;
 plotonly = 1;
-para1 = 'alpha2';
-para2 = 'alpha1';
+para1 = 'm2';
+para2 = 'alpha2';
 f = figure;
 hold on
 %% Parameters
 d=0.001; % mutation rate
-alpha1 = 0.5; % max growth
+alpha1 = 0.75; % max growth
 m1 = 0.2; %prey mortality
 m2 = 0.2;
 alpha2 = 0.5;
@@ -29,12 +29,15 @@ c=linspace(0,cmax,M);
 u0 = 0.5*ones(1,length(c));%0.1+0.1*rand(1,length(c));
 u0(end+1) = 0.5;
 
+filename = "num_sim_data/hopf_sim_data_"+para1+ "_" + para2 + "_change"+strrep("_d"+num2str(d)+"_ph"+num2str(ph)+"_gamma"+num2str(gamma)+...
+        "_alpha1"+num2str(alpha1)+"_alpha2"+num2str(alpha2)+"_m1"+num2str(m1)+"_m2"+num2str(m2),'.','dot');
+
 if plotonly ~=1
 %% ODE Solver
     options = odeset('Stats', 'off','MaxStep',1e-2,'NonNegative',1:M+1); %Note v = [u;w] = [plants; water]
   
-    para1_col = 0.34;
-    para2_col = 0.2:0.001:0.21;
+    para1_col = 0.4:0.05:0.9;
+    para2_col = 0.025:0.05:0.875;
 
     limitcycle = zeros(length(para1_col),length(para2_col));
     for aa = 1:length(para1_col)
@@ -55,7 +58,7 @@ if plotonly ~=1
         
     
     try
-        load(['num_sim_data/hopf_sim_data_',para1,'_',para2]);
+        load(filename);
         fields = fieldnames(datacol);
         datacol.("Data_"+num2str(length(fields)+1)).para1 = para1_col;
         datacol.("Data_"+num2str(length(fields)+1)).para2 = para2_col;
@@ -70,7 +73,7 @@ if plotonly ~=1
     
     
 else
-    load(['num_sim_data/hopf_sim_data_',para1,'_',para2]);
+    load(filename);
 end
 %%
 fields = fieldnames(datacol);
@@ -89,7 +92,7 @@ end
 grid on
 xlabel(para1)
 ylabel(para2)
-save(['num_sim_data/hopf_sim_data_',para1,'_',para2], 'datacol')
+save(filename, 'datacol')
 
 %% plot boundary only
 f1 = figure;
@@ -107,13 +110,16 @@ for ff = 1:length(fields)
    limitcycle = datacol.(fields{ff}).limitcycle';
    for aa = 1:length(data.para1) 
         b_ind = find(diff(data.limitcycle(aa,:))~=0);
+        
         for bb = 1:length(b_ind)
             para1_b = [para1_b, data.para1(aa)];
             para2_b = [para2_b, mean(data.para2(b_ind(bb):b_ind(bb)+1))];
-        end       
+        end      
+        
    end
 end
 [para1_b,sortind] = sort(para1_b); para2_b = para2_b(sortind);
+[para1_b,ia,ic] = unique(para1_b);
 plot(para2_b,para1_b,'o', 'color', 'k', 'MarkerSize',ms)
 
 if strcmp(para1,'m2') && strcmp(para2,'m1')
@@ -136,6 +142,8 @@ if strcmp(para2,'alpha1')
     xlabel("Prey defence cost, $\alpha_1$", "Interpreter","latex")
 elseif strcmp(para2,'m1')
     xlabel("Prey mortality, $m_1$", "Interpreter","latex")
+elseif strcmp(para2,'alpha2')
+    xlabel("Prey defence efficiency, $\alpha_2$", "Interpreter","latex")
 else
     xlabel(para2)
 end
