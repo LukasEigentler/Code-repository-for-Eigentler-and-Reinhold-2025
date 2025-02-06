@@ -4,6 +4,13 @@
 
 clear; close all;
 
+alt = 1;
+if alt == 1
+    alttext = "_alt";
+else
+    alttext = "";
+end
+
 %% Parameters
 d=0.001; dtemp = d;% mutation rate
 alpha1 = 0.75; alpha1temp = alpha1; % cost of prey defence
@@ -12,25 +19,28 @@ m1 = 0.2; %prey mortality
 m2 = 0.2; m2temp = m2; %pred mortality (LV only)
 ph = 0.5; %predation half saturation constant (extension only)
 gamma = 4; % prey to predator conversion
-switchparachoice = "m2";
+s =0.5;
+switchparachoice = "d";
 % switchpara = [logspace(-5,-4,10),logspace(-4,-3,10),logspace(-3,-2,10),logspace(-2,-1,10)];
 if switchparachoice == "m2"
     switchpara = linspace(0,3,30);
+elseif switchparachoice == "p"
+    switchpara = 0:0.01:1; 
 elseif switchparachoice == "d"
-    switchpara = logspace(-6,-2,40);
+    switchpara = logspace(-6,-1,100);
+elseif switchparachoice == "gamma"
+    switchpara = 0:0.05:8; 
+elseif switchparachoice == "alpha1"
+    switchpara = 0.05:0.05:2;
 else
-    switchpara = linspace(0,1,10);
+    switchpara = 0.05:0.05:2;
 end
 %% Mesh
-cmax = 1; %Space domain size of interest
 tmax = 1000; %Integration range for solver
 M = 2^8; %Number of trait points
-c=linspace(0,cmax,M);
 
 
-%% IC
-u0 = 0.5*ones(1,length(c));%0.1+0.1*rand(1,length(c));
-u0(end+1) = 0.0; % no predators in this case
+
 
 
 %% ODE Solver
@@ -48,7 +58,12 @@ for ss = 1:length(switchpara)
         case "d"
             d = switchpara(ss);
     end
-    [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_trait_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options);
+    cmax = min([1/alpha1]); %Space domain size of interest
+    c=linspace(0,cmax,M);
+    % IC
+    u0 = 0.5*ones(1,length(c));%0.1+0.1*rand(1,length(c));
+    u0(end+1) = 0.0; % no predators in this case
+    [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_trait_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options,alt,s);
 
 
 
@@ -89,7 +104,7 @@ end
 
 
 filename = "num_sim_data/mut_sel_balance_data_"+switchparachoice+"_change"+strrep("_d"+num2str(d)+"_ph"+num2str(ph)+"_gamma"+num2str(gamma)+...
-        "_alpha1"+num2str(alpha1)+"_alpha2"+num2str(alpha2)+"_m1"+num2str(m1)+"_m2"+num2str(m2),'.','dot');
+        "_alpha1"+num2str(alpha1)+"_alpha2"+num2str(alpha2)+"_m1"+num2str(m1)+"_m2"+num2str(m2)+alttext,'.','dot');
 
 save(filename,"switchpara","mut_sel_varc")
 

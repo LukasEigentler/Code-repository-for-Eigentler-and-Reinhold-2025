@@ -5,18 +5,24 @@
 
 clear; 
 close all;
+alt = 1; % 0 for model in which f1 multiplies the net growth term; 1 for model in which f1 multiplies growth rate only; 2 for superlinear cost; 3 for saturation of efficiency at s
 
 %% Parameters
-d=1e-3; % mutation rate
+d=1e-5; % mutation rate
 alpha1 = 0.75; % cost of prey defence
 alpha2 = 0.5; % prey defence efficiency
-m1 = 0.2; %prey mortality
+m1 = 0.75; %prey mortality
 m2 = 0.2; %pred mortality (LV only)
 ph = 0.5; %predation half saturation constant (extension only)
 gamma = 4; % prey to predator conversion
+s = 0.5; % saturation level of prey defence efficiency
 
 %% Mesh
-cmax = 1; %Space domain size of interest
+if alt == 2
+    cmax = sqrt(1/alpha1);
+else
+    cmax = 1/alpha1; %Space domain size of interest
+end
 tmax = 1000; %Integration range for solver
 M = 2^8; %Number of trait points
 % option to reduce model to a non-evolutionary model
@@ -28,12 +34,12 @@ end
 
 %% initial condition
 u0 = 0.5*ones(1,length(c)); % prey 
-u0(end+1) = 0.5; % predator
+u0(end+1) = 0.0; % predator
 
 
 %% ODE Solver
 options = odeset('Stats', 'off','MaxStep',1e-2,'NonNegative',1:M+1); 
-[t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options);
+[t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options,alt,s);
 
 %% visualisations 
 
@@ -59,10 +65,11 @@ plot(t,v(:,M+1))
 xlabel("Time, t")
 ylabel("both")
 yyaxis right
-plot(t,medianc, '--')
+% plot(t,medianc, '--')
 hold on
 plot(t,meanc, '--')
 ylabel("Mean trait")
+ylim([0,1])
 % xlim([plotstart,tmax])
 
 subplot(2,2,4)
@@ -75,21 +82,24 @@ ylabel("Pred")
 
 %% plot prey pred densities and mean trait
 f = figure;
-plot(t_op,totalprey_op)
+% plot(t_op,totalprey_op)
+plot(t,totalprey)
 hold on
 % grid on
-plot(t_op,v_op(:,M+1))
-% xlabel("Time, t")
+% plot(t_op,v_op(:,M+1))
+plot(t,v(:,M+1))
+xlabel("Time, t")
 xticklabels([])
 ylabel("Prey and pred. dens.")
-legend("Total prey", "Predator")
+% legend("Total prey", "Predator")
 grid on
-% ylim([0,1.1])
-% yyaxis right
+ylim([0,1.1])
+yyaxis right
 % plot(t_op,meanc_op, '--')
-% ylabel("Mean trait")
-% % xlim([plotstart,t(end)])
-% ylim([0,1])
+plot(t,meanc, '--')
+ylabel("Mean trait")
+% xlim([plotstart,t(end)])
+ylim([0,cmax])
 
 set(f,'Windowstyle','normal')
 set(findall(f,'-property','FontSize'),'FontSize',10)
@@ -131,6 +141,8 @@ plot(t_op,sqrt(varc_op),'-','color',col(4,:))
 try
 plot([t_op(islocalmax(meanc_op)),t_op(islocalmax(meanc_op))],[0,meanc_op(islocalmax(meanc_op))],'-','color', [.5 .5 .5],'LineWidth',0.5)
 plot([t_op(islocalmin(meanc_op)),t_op(islocalmin(meanc_op))],[0,meanc_op(islocalmin(meanc_op))],'-','color', [.5 .5 .5],'LineWidth',0.5)
+[~,plotloc] = min(abs(t_op - (t_op(islocalmin(meanc_op)) + ( t_op(islocalmax(meanc_op))-t_op(islocalmin(meanc_op)))/4)));
+% plot([t_op(plotloc),t_op(plotloc)],[0,meanc_op(plotloc)],'-','color', [.5 .5 .5],'LineWidth',0.5)
 end
 ylabel("Trait mean and std")
 ylim([0,1])
@@ -173,28 +185,35 @@ xlabel("c")
 ylabel("Pred")
 
 %% distribution plot single time point
-try
+% try
 f3 = figure;
 % plotind_single = length(t); % end point of simulation
 % tempind = find(islocalmin(meanc_op)); % at min meanc
 tempind = find(islocalmax(meanc_op)); % at max meanc
 % tempind = find(t_op<7);
-plotind_single =  tempind(end);
+% tempind = plotloc;
+if ~isempty(tempind)
+    plotind_single =  tempind(end);
+else
+    plotind_single = 1;
+end
 plot(c,v_op(plotind_single,1:M)/((c(2)-c(1))*sum(v_op(plotind_single,1:M))))
-% xlabel("Trait value, c")
-% ylabel("Prey frequency")
+xlabel("Trait value, c")
+ylabel("Prey frequency")
 grid on
-ylim([0,4.5])
+ylim([0,5.6])
+xlim([0,cmax])
 
 set(f3,'Windowstyle','normal')
 set(findall(f3,'-property','FontSize'),'FontSize',11)
 set(f3,'Units','centimeters')
-set(f3,'Position',[18 1 17/4 17/4])
+% set(f3,'Position',[18 1 17/4 17/4])
+set(f3,'Position',[18 1 17/2 4])
 
 
 % saveas(f,"Paper/figures/example_po_f1_eq_f2", 'epsc')
 
-end
+% end
 
 %%
 
@@ -288,13 +307,13 @@ f3 = figure;
 plot(c,fit_fixed_time,'--o')
 xlabel("Prey trait")
 ylabel("Prey fitness")
-% save("num_sim_data/growth_rate_vs_c_data_alpha1"+strrep(num2str(alpha1),".","dot")+"_alpha2"+strrep(num2str(alpha2),".","dot")+"_m1"+strrep(num2str(m1),".","dot")...
-%     +"_m2"+strrep(num2str(m2),".","dot"),"c","fit","alpha1","alpha2","m1","m2","d","ph","gamma", "v_op", "t")
+save("num_sim_data/growth_rate_vs_c_data_alpha1"+strrep(num2str(alpha1),".","dot")+"_alpha2"+strrep(num2str(alpha2),".","dot")+"_m1"+strrep(num2str(m1),".","dot")...
+    +"_m2"+strrep(num2str(m2),".","dot"),"c","fit_fixed_time","alpha1","alpha2","m1","m2","d","ph","gamma", "v_op", "t")
 
 
 %% plot all together
-% try
-% alpha1_col = [0.2,0.29,0.38];
+
+% alpha1_col = [0.25,0.4,0.45];
 % f4 = figure;
 % 
 % for aa = 1:length(alpha1_col)
@@ -304,7 +323,7 @@ ylabel("Prey fitness")
 %     subplot(1,2,1)
 %     hold on 
 %     grid on
-%     p(aa) = plot(c,fit,'-', "DisplayName","$\alpha_1 = "+num2str(alpha1)+"$");
+%     p(aa) = plot(c,fit_fixed_time,'-', "DisplayName","$\alpha_1 = "+num2str(alpha1)+"$");
 %     subplot(1,2,2)
 %     hold on
 %     grid on
@@ -324,7 +343,7 @@ ylabel("Prey fitness")
 % set(findall(f4,'-property','FontSize'),'FontSize',11)
 % set(f4,'Units','centimeters')
 % set(f4,'Position',[18 1 18 9])
-% end
+
 
 %% fitness figures
 if const == 0

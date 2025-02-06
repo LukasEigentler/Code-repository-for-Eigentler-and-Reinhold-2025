@@ -1,10 +1,10 @@
-function  [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options)
+function  [t,v,totalprey,medianc,meanc,L,v_op,totalprey_op,t_op,medianc_op,meanc_op,varc_op,phaselag_prey_pred,phaselag_pred_trait,phaselag_mean_var,varc] = prey_defence_single_run_fun(c,M,d,alpha1,alpha2,ph,gamma,m2,m1,tmax,u0,options,alt,s)
 % This script is a function that simulates the model once and calculates a
 % number of output quantities of interest.
 rerun = 1;
 tvec = [0,tmax];
 while rerun == 1
-    [t,v] = ode15s(@(t,v) pred_prey_prey_defence_ode(v,c,M,d,alpha1,alpha2,ph,gamma,m2,m1), tvec, u0, options);
+    [t,v] = ode15s(@(t,v) pred_prey_prey_defence_ode(v,c,M,d,alpha1,alpha2,ph,gamma,m2,m1,alt,s), tvec, u0, options);
     
     %% Postprocessing
     
@@ -14,6 +14,7 @@ while rerun == 1
     else
         dc = 1;
     end
+    totalprey = []; medianc = []; meanc = []; varc = [];
     for tt = 1:length(t)
         totalprey(tt) = sum(v(tt,1:M))*dc;
         [~,tempind] = min(abs(cumsum(v(tt,1:M))/sum(v(tt,1:M))-0.5));
