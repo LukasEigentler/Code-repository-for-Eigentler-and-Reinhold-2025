@@ -4,23 +4,22 @@
 
 clear;
 close all;
-cplot = 0.5;
-c = linspace(0,1);
-[~,cind] = min(abs(c-cplot));
+alpha2 = 0.5;
+c = linspace(-2,1/alpha2);
 p = 0.5;
-alpha2 = 2;
-f2 = alpha2-c;
-b_col = [0.5,2];
-
+f2 = 1-alpha2*c;
+mu_col = [0.5,1.5];
+var = 0.2;
 f = figure;
 hold on
 
-for bb = 1:length(b_col)
-    b = b_col(bb);
-    x = 1-b/2 + b*c;
+for bb = 1:length(mu_col)
+    mu = mu_col(bb);
+    x = 1/var*theta((c-mu)/var)/(phi((c(end)-mu)/var) - phi((c(1)-mu)/var));
     xp = trapz(c,f2.*x);
     pred_press = f2/(p+xp);
-    graph(bb) = plot(c,pred_press, "DisplayName","$F(X) = "+ num2str(1-b/2) + "+" + num2str(b)+"c$");
+    graph(bb) = plot(c,pred_press);
+%     plot(c,x)
 end
 
 % leg = legend(graph);
@@ -34,3 +33,10 @@ set(f,'Windowstyle','normal')
 set(findall(f,'-property','FontSize'),'FontSize',11)
 set(f,'Units','centimeters')
 set(f,'Position',[10 5 10 11])
+
+function theta = theta(x)
+theta = 1/sqrt(2*pi)*exp(-x.^2/2);
+end
+function phi = phi(x)
+phi = 1/2*(1+erf(x/sqrt(2)));
+end

@@ -8,8 +8,8 @@ close all;
 alt = 1; % 0 for model in which f1 multiplies the net growth term; 1 for model in which f1 multiplies growth rate only; 2 for superlinear cost; 3 for saturation of efficiency at s
 
 %% Parameters
-d=1e-5; % mutation rate
-alpha1 = 0.75; % cost of prey defence
+d=1e-3; % mutation rate
+alpha1 = 1.4; % cost of prey defence
 alpha2 = 0.5; % prey defence efficiency
 m1 = 0.75; %prey mortality
 m2 = 0.2; %pred mortality (LV only)
@@ -34,7 +34,7 @@ end
 
 %% initial condition
 u0 = 0.5*ones(1,length(c)); % prey 
-u0(end+1) = 0.0; % predator
+u0(end+1) = 0.5; % predator
 
 
 %% ODE Solver
@@ -292,23 +292,23 @@ fprintf("Solution properties: "...
 
 
 %% calc prey fitness for each genotype at one time point
-if ~(max(abs(max(totalprey_op)-min(totalprey_op))./mean(totalprey_op)) > 1e-2 && max(totalprey_op) > 1e-2) % only for constant sol
-    X = v_op(1:end-1); Y = v_op(end);
-else
-    [~,maxiqrind] = max(varc_op);
-    X = v_op(maxiqrind,1:end-1); Y = v_op(maxiqrind,end);
-end
-relpred = (1-alpha2*c).*X;
-xbar = trapz(c,relpred);
-dc = c(2)-c(1);
-Xtot = sum(X)*dc;
-fit_fixed_time = (1-alpha1*c)*(1-Xtot) - (1-alpha2*c)*Y./(ph+xbar) - m1;
-f3 = figure;
-plot(c,fit_fixed_time,'--o')
-xlabel("Prey trait")
-ylabel("Prey fitness")
-save("num_sim_data/growth_rate_vs_c_data_alpha1"+strrep(num2str(alpha1),".","dot")+"_alpha2"+strrep(num2str(alpha2),".","dot")+"_m1"+strrep(num2str(m1),".","dot")...
-    +"_m2"+strrep(num2str(m2),".","dot"),"c","fit_fixed_time","alpha1","alpha2","m1","m2","d","ph","gamma", "v_op", "t")
+% if ~(max(abs(max(totalprey_op)-min(totalprey_op))./mean(totalprey_op)) > 1e-2 && max(totalprey_op) > 1e-2) % only for constant sol
+%     X = v_op(1:end-1); Y = v_op(end);
+% else
+%     [~,maxiqrind] = max(varc_op);
+%     X = v_op(maxiqrind,1:end-1); Y = v_op(maxiqrind,end);
+% end
+% relpred = (1-alpha2*c).*X;
+% xbar = trapz(c,relpred);
+% dc = c(2)-c(1);
+% Xtot = sum(X)*dc;
+% fit_fixed_time = (1-alpha1*c)*(1-Xtot) - (1-alpha2*c)*Y./(ph+xbar) - m1;
+% f3 = figure;
+% plot(c,fit_fixed_time,'--o')
+% xlabel("Prey trait")
+% ylabel("Prey fitness")
+% save("num_sim_data/growth_rate_vs_c_data_alpha1"+strrep(num2str(alpha1),".","dot")+"_alpha2"+strrep(num2str(alpha2),".","dot")+"_m1"+strrep(num2str(m1),".","dot")...
+%     +"_m2"+strrep(num2str(m2),".","dot"),"c","fit_fixed_time","alpha1","alpha2","m1","m2","d","ph","gamma", "v_op", "t")
 
 
 %% plot all together
@@ -356,7 +356,8 @@ if const == 0
     for xx = 1:height(X)
         xbar(xx) = trapz(c,relpred(xx,:));
         Xtot(xx) = sum(X(xx,:))*dc;
-        fit(xx,:) = (1-alpha1*c)*(1-Xtot(xx)) - (1-alpha2*c)*Y(xx)./(ph+xbar(xx)) - m1;
+%         fit(xx,:) = (1-alpha1*c)*(1-Xtot(xx)) - (1-alpha2*c)*Y(xx)./(ph+xbar(xx)) - m1;
+        fit(xx,:) = 1-alpha1*c - Xtot(xx) - (1-alpha2*c)*Y(xx)./(ph+xbar(xx));
     end
 %     maxfit = max(fit(:)); minfit = min(fit(:));
 %     for xx = 1:height(X)
@@ -384,6 +385,6 @@ if const == 0
     figname = "../../Ecol_paper/figures/DD"+strrep("_d"+num2str(d)+"_ph"+num2str(ph)+"_gamma"+num2str(gamma)+...
         "_alpha1"+num2str(alpha1)+"_alpha2"+num2str(alpha2)+"_m1"+num2str(m1)+"_m2"+num2str(m2),'.','dot')+".eps";
 
-    % exportgraphics(f5,figname,"Resolution",2000)
+    exportgraphics(f5,figname,"Resolution",2000)
 
 end

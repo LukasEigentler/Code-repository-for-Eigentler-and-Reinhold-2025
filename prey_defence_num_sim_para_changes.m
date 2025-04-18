@@ -12,7 +12,7 @@ else
 end
 %% set which parameter is changed
 
-parachange = "gamma";
+parachange = "p";
 if parachange == "m2"
     para_col = 0.1:0.02:3;
 
@@ -30,11 +30,11 @@ elseif parachange == "alpha2"
         para_col =0.01:0.01:2;
     end
 elseif parachange == "p"
-    para_col = 0:0.01:1; 
+    para_col = 0.01:0.01:1; 
 elseif parachange == "d"
     para_col = logspace(-6,-1,100);
 elseif parachange == "gamma"
-    para_col = 0:0.05:8; 
+    para_col = 0.1:0.05:5; 
 end
 %% Parameters
 d=0.001; % mutation rate
@@ -78,9 +78,9 @@ if plotonly == 0
         elseif parachange == "d"
             d = para_col(mm);
         elseif parachange == "gamma"
-            dgamma = para_col(mm);
+            gamma = para_col(mm);
         elseif parachange == "p"
-            p = para_col(mm);
+            ph = para_col(mm);
             
         else
             error("Not a valid parameter to change")
@@ -94,7 +94,7 @@ if plotonly == 0
         % IC
 
         % u0 = [100*rand(1,length(c))/length(c),10*rand];
-        u0 = 0.5*ones(1,length(c));%0.1+0.1*rand(1,length(c));
+        u0 = 0.5*ones(1,length(c))/(c(end)-c(1));
         % if M>1 
         %     u0(c<1/3) = 0; u0(c>2/3) = 0;
         % end
@@ -126,7 +126,17 @@ f = figure;
 
 load(filename1)
 
-
+nopreyind = find(maxprey<1e-2);
+meanmeantrait(nopreyind) = 0;
+minmeantrait(nopreyind) = 0;
+maxmeantrait(nopreyind) = 0;
+meanvartrait(nopreyind) = 0;
+minvartrait(nopreyind) = 0;
+maxvartrait(nopreyind) = 0;
+wavelength(nopreyind) = 0;
+lag_pred_trait(nopreyind) = 0;
+lag_prey_pred(nopreyind) = 0;
+lag_mean_iqr(nopreyind) = 0;
 
 subplot(2,2,1)
 hold on
@@ -136,7 +146,7 @@ plot(para_col,maxprey,'o','color', maxcol, 'MarkerSize',ms, 'LineWidth',lw)
 plot(para_col,meanprey,'o','color', meancol, 'MarkerSize',ms, 'LineWidth',lw)
 ylabel("Prey biomass")
 xlim([min(para_col),max(para_col)])
-% ylim([0,1])
+ylim([0,0.8])
 pbaspect([1.5 1 1])
 % title("A")
 % ax=gca;
@@ -154,7 +164,7 @@ plot(para_col,maxpred,'o','color', maxcol, 'MarkerSize',ms, 'LineWidth',lw)
 plot(para_col,meanpred,'o','color', meancol, 'MarkerSize',ms, 'LineWidth',lw)
 ylabel("Pred biomass")
 xlim([min(para_col),max(para_col)])
-% ylim([0,2])
+ylim([0,3.5])
 pbaspect([1.5 1 1])
 % title("B")
 % ax=gca;
@@ -230,8 +240,8 @@ set(findall(f,'-property','FontSize'),'FontSize',11)
 set(f,'Units','centimeters')
 set(f,'Position',[18 1 13 9])
 
-saveas(f,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim"+alttext, 'epsc')
-saveas(f,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim"+alttext, 'png')
+saveas(f,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim"+alttext+"_initial_bounds", 'epsc')
+saveas(f,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim"+alttext+"_initial_bounds", 'png')
 
 
 f1 = figure;
@@ -295,5 +305,5 @@ set(findall(f1,'-property','FontSize'),'FontSize',11)
 set(f1,'Units','centimeters')
 set(f1,'Position',[18 1 13 4.5])
 
-saveas(f1,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim_suppl"+alttext, 'epsc')
-saveas(f1,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim_suppl"+alttext, 'png')
+saveas(f1,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim_suppl"+alttext+"_initial_bounds", 'epsc')
+saveas(f1,"../../Ecol_paper/figures/bif_diag_"+parachange+"_numsim_suppl"+alttext+"_initial_bounds", 'png')
